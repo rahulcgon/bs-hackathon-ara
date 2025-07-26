@@ -49,9 +49,49 @@ exports.config = {
     // Sauce Labs platform configurator - a great tool to configure your capabilities:
     // https://saucelabs.com/platform/platform-configurator
     //
-    capabilities: [{
-        browserName: 'chrome'
-    }],
+    capabilities: [
+        // Desktop Chrome - Primary testing browser
+        {
+            browserName: 'chrome',
+            'goog:chromeOptions': {
+                args: ['--disable-dev-shm-usage', '--no-sandbox'],
+                prefs: {
+                    'profile.default_content_setting_values.notifications': 2
+                }
+            },
+            'wdio:maxInstances': 3
+        },
+        // Desktop Firefox - Cross-browser compatibility
+        {
+            browserName: 'firefox',
+            'moz:firefoxOptions': {
+                args: ['--disable-notifications']
+            },
+            'wdio:maxInstances': 2
+        },
+        // Mobile Chrome - Responsive testing
+        {
+            browserName: 'chrome',
+            'goog:chromeOptions': {
+                mobileEmulation: {
+                    deviceName: 'iPhone 12 Pro'
+                },
+                args: ['--disable-dev-shm-usage', '--no-sandbox']
+            },
+            'wdio:maxInstances': 2
+        },
+        // Tablet Chrome - Responsive testing
+        {
+            browserName: 'chrome',
+            'goog:chromeOptions': {
+                mobileEmulation: {
+                    deviceName: 'iPad Pro'
+                },
+                args: ['--disable-dev-shm-usage', '--no-sandbox']
+            },
+            'wdio:maxInstances': 2
+        }
+    ],
 
     //
     // ===================
@@ -84,7 +124,7 @@ exports.config = {
     // with `/`, the base url gets prepended, not including the path portion of your baseUrl.
     // If your `url` parameter starts without a scheme or `/` (like `some/path`), the base url
     // gets prepended directly.
-    // baseUrl: 'http://localhost:8080',
+    baseUrl: 'https://testathon.live',
     //
     // Default timeout for all waitFor* commands.
     waitforTimeout: 10000,
@@ -123,7 +163,14 @@ exports.config = {
     // Test reporter for stdout.
     // The only one supported by default is 'dot'
     // see also: https://webdriver.io/docs/dot-reporter
-    reporters: ['spec'],
+    reporters: [
+        'spec',
+        ['allure', {
+            outputDir: 'allure-results',
+            disableWebdriverStepsReporting: true,
+            disableWebdriverScreenshotsReporting: false,
+        }]
+    ],
 
     // Options to be passed to Mocha.
     // See the full list at http://mochajs.org/
@@ -226,8 +273,15 @@ exports.config = {
      * @param {boolean} result.passed    true if test has passed, otherwise false
      * @param {object}  result.retries   information about spec related retries, e.g. `{ attempts: 0, limit: 0 }`
      */
-    // afterTest: function(test, context, { error, result, duration, passed, retries }) {
-    // },
+    afterTest: async function(test, context, { error, result, duration, passed, retries }) {
+        // Take screenshot on test failure
+        if (!passed) {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `./screenshots/FAILED_${test.title.replace(/\s+/g, '_')}_${timestamp}.png`;
+            await browser.saveScreenshot(filename);
+            console.log(`Screenshot saved: ${filename}`);
+        }
+    },
 
 
     /**

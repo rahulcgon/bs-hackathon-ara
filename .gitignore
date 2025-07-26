@@ -1,2 +1,7 @@
 node_modules
 tasks/
+allure-report
+allure-results
+
+.github/
+.allure/
