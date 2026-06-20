@@ -1,96 +1,105 @@
-# Automation-Testing-with-WebdriverIO
+# bs-hackathon-ara
 
-Welcome to the WebdriverIO Testing repository! This repository contains code and examples for implementing test automation using WebdriverIO, a powerful test automation framework for Node.js. With WebdriverIO, you can conduct end-to-end, unit, and component testing in the browser environment.
+A WebdriverIO end-to-end test suite that exercises the product filtering on [testathon.live](https://testathon.live), built for a BrowserStack hackathon.
 
-![WebdriverIO](https://th.bing.com/th/id/OIP.Oih_pPGaXHEMV1uY_0erZQAAAA?rs=1&pid=ImgDetMain)
+## What this is
 
-## Features
+This repo is a UI automation project written with [WebdriverIO](https://webdriver.io/) (v8) and Mocha. It drives a real browser against `https://testathon.live` (the BrowserStack demo e-commerce store) and tries to verify the product catalog and its brand/price/sort filters across desktop and emulated mobile/tablet viewports.
 
-- End-to-end, unit, and component testing in the browser
-- Supports BDD or TDD test frameworks
-- Local and cloud-based testing
-- Automated waiting for elements to appear before interaction
-- Command line interface for easy configuration setup
-- Integration with various test frameworks and reporter plugins
-## Watch a Demo
+The bulk of the value is in the page objects and the filter specs. A fair amount of the suite is written defensively, because the filter UI on the target site does not actually behave like a normal filtered catalog, so several tests are really documenting "this is what should happen vs. what does happen" rather than asserting hard pass/fail. See the notes section at the bottom for the honest caveats.
 
-Check out this demo of running WebdriverIO tests:
+## What it does
 
-![Run Test](https://webdriver.io/img/create-wdio-dark.gif)
+- Opens `testathon.live` and waits for the product grid (`.shelf-container` / `.shelf-item`) to render.
+- Reads each product card to pull title, price, and a brand guessed from the title (iPhone / Galaxy / Pixel / OnePlus).
+- Attempts to apply brand filters, price ranges, sorting, and view toggles through a `FilterPanel` page object.
+- Verifies that the products shown match the filter criteria (brand membership, price bounds).
+- Captures basic page-load performance metrics (DOM content loaded, first paint, FCP) and a rough performance score.
+- Takes a screenshot automatically on any test failure (saved to `./screenshots/`).
+- Runs the same specs across four capabilities: desktop Chrome, desktop Firefox, mobile Chrome (iPhone 12 Pro emulation), and tablet Chrome (iPad Pro emulation).
 
-## Getting Started
+## Project structure
 
-To get started with WebdriverIO, follow these steps:
+```
+wdio.conf.js                      WebdriverIO config: capabilities, baseUrl, reporters, failure-screenshot hook
+package.json                      Dependencies and the single "wdio" script
 
-1. **Create a project folder and open it on Visual Studio Code or a text editor of your choice.**
+test/
+  pageobjects/
+    BasePage.js                   Shared helpers: open/wait, safe click w/ retry, typing, perf metrics,
+                                    network throttling, device-size checks, screenshot
+    FilterPanel.js                Filter interactions (extends BasePage): brand checkboxes, price inputs,
+                                    sort dropdown, view toggle, pagination, clear/apply, filter-state readers
+    ProductListingPage.js         Product catalog (extends BasePage): read cards, parse price/brand,
+                                    filter-in-memory helpers, add-to-cart, performance checks
+    page.js / login.page.js /     Leftover WDIO boilerplate that points at the-internet.herokuapp.com,
+    secure.page.js                 NOT used by the testathon specs
 
-2. **Install WebdriverIO in your project:**
+  specs/
+    filter/
+      basic-filtering.spec.js              Single-brand filtering, clear-all, filter-state, perf, slow-3G
+      advanced-filter-combinations.spec.js Multi-brand combinations; largely documents non-functional state
+      focused-filter-testing.spec.js       Targeted cases (3.1.1 single brand, 3.2.1 multi-brand)
+      discovery.spec.js                    DOM-discovery scratch test: dumps selectors/elements to the log
+      product-catalog.spec.js              Product catalog checks
+    main.js                                Standalone script with faker + a Slack-webhook reporter stub (see notes)
 
-    ```bash
-    npm install @wdio/cli
-    ```
+  testdata/
+    filterTestData.js             Brands, brand combinations, price ranges, boundary values, test config
+```
 
-3. **Create a configuration file for WebdriverIO:**
+## How to run it
 
-    ```bash
-    npx wdio config
-    ```
+### Requirements
 
-4. **Create a `Tests` folder in your project directory. Inside the `Tests` folder, create a `Specs` folder. Then, create a file called `test.e2e.js` inside the `Specs` folder and add your test script.**
+- Node.js 16+ (WDIO 8 needs a reasonably current Node).
+- A locally installed **Chrome** and **Firefox**, since the config runs against both. WebdriverIO 8 auto-manages the matching browser drivers for you.
+- Network access to `https://testathon.live`.
 
-    ```javascript
-    const { expect, browser, $ } = require("@wdio/globals");
+### Setup
 
-    describe("Form Submit Demo", () => {
-        it("should fill form input fields", async () => {
-            await browser.url('https://www.linkedin.com/in/mejbaur/');
-            await $("#title").setValue("John Doe");
-            await $("#description").setValue("Hello there");
-            await $("#btn-submit").click();
-        });
-    });
-    ```
+```bash
+git clone https://github.com/rahulcgon/bs-hackathon-ara.git
+cd bs-hackathon-ara
+npm install
+```
 
-5. **Run the test:**
+You may also want to create the output directories the suite writes into, since they are not created automatically:
 
-    ```bash
-    npm run wdio
-    ```
+```bash
+mkdir -p screenshots allure-results
+```
 
-Once the command is done running, you should be able to see the results of the tests on the command line.
-## YouTube Video Tutorial 👇🏿
+### Run
 
-[![WebdriverIO](https://img.youtube.com/vi/EPjajfWZyPw/maxresdefault.jpg)](https://youtu.be/EPjajfWZyPw)
+```bash
+npm run wdio
+```
 
-Watch the video tutorial for a visual guide on getting started with Jasmine.
+That runs `wdio run ./wdio.conf.js`, which picks up everything matching `./test/specs/**/*.js` and runs it across all four capabilities defined in `wdio.conf.js`.
 
+### Reports
 
+- Console output uses the `spec` reporter.
+- Allure results are written to `allure-results/`. To view them you need the Allure CLI installed separately (it is not a dependency here), e.g. `allure serve allure-results`.
 
-## Contributing
+### Environment variables
 
-We welcome contributions to this repository! To contribute, follow these steps:
+There are none. `baseUrl` (`https://testathon.live`) is hardcoded in `wdio.conf.js`, and there is no `.env` or config for credentials, BrowserStack keys, or a Slack webhook. If you want to point at a different host, edit `baseUrl` directly.
 
-1. Fork the repository
-2. Create a new branch for your features or fixes
-3. Make your changes
-4. Test your changes thoroughly
-5. Submit a pull request
+## Notes and known rough edges
 
-## License
+This project was put together quickly for a hackathon, and it shows. Being upfront about it:
 
-[MIT License](LICENSE)
+- **The filters on the target site are effectively non-functional**, and the suite knows this. `advanced-filter-combinations.spec.js` and `focused-filter-testing.spec.js` are written to compute the *expected* filtered result and then document that the live site does not actually filter (product count stays the same). Treat these as exploratory/documentation tests, not green-or-red regression tests.
+- **The `FilterPanel` selectors are guesses.** They are long OR-chains of `data-testid`, class, and label selectors (and some use XPath-style `contains(text(),...)` inside CSS, which WDIO will not parse). Many filter methods are wrapped in try/catch that just logs a warning and moves on, so they can silently no-op.
+- **`test/specs/main.js` will almost certainly break the run.** It lives under `test/specs/`, so the glob picks it up, but it `require`s `axios` (not in `package.json`) and contains an unfinished `sendResultsToSlack` with a literal `'Insert your Slack webhook url'` placeholder. Move it out of `test/specs/` or finish/remove it before relying on the suite.
+- **`cypress` is listed as a devDependency but there are no Cypress tests** anywhere in the repo. It is dead weight and can be removed.
+- **`faker` is pinned to `5.5.3`** (the last release before the package was deprecated/sabotaged). It is imported in `filterTestData.js` and `main.js` but barely used.
+- **No browser-driver or BrowserStack service is configured.** `services` is commented out in `wdio.conf.js`, so this runs locally only despite being a "BrowserStack hackathon" repo. There is no BrowserStack capability/credentials wiring.
+- **`discovery.spec.js` is a scratchpad**, not a test. It walks the DOM and prints what it finds. Useful for figuring out selectors, noisy in a CI run.
+- **Leftover boilerplate:** `page.js`, `login.page.js`, and `secure.page.js` are the default WDIO starter files pointing at `the-internet.herokuapp.com` and are unrelated to the testathon work.
+- **`.github/workflows/datadog-synthetics.yml` is the unmodified GitHub template** and requires `DD_API_KEY` / `DD_APP_KEY` secrets that are not set up. It does not run this WDIO suite.
+- **`test.txt`** contains the string `dlaskpo` and can be deleted.
+- **Output dirs** (`screenshots/`, `allure-results/`) are referenced by hooks but not created by the suite, so create them first or expect a failure when the failure-screenshot hook fires.
 
-
-## Follow Me
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://www.linkedin.com/in/mejbaur/)
-[![Facebook](https://img.shields.io/badge/Facebook-Follow-blue)](https://www.facebook.com/mbfagun)
-[![YouTube](https://img.shields.io/badge/YouTube-Subscribe-red)](https://www.youtube.com/channel/UC4Pgj5J2ZUxAVH9iAPfqL5g)
-[![Twitter](https://img.shields.io/badge/Twitter-Follow-blue)](https://twitter.com/fagun018)
-[![Website](https://img.shields.io/badge/Website-Visit-blue)](https://mbfagun.blogspot.com/)
-[![Medium](https://img.shields.io/badge/Medium-Follow-blue)](https://fagun18.medium.com/)
-
-
-![Mejbaur Bahar Fagun](https://th.bing.com/th/id/OIP.kZ7sZWgg-zvkLAeAjttqpgHaHa?rs=1&pid=ImgDetMain)  
-**Mejbaur Bahar Fagun**  
-Product Acceptance Engineer (L2) @ DEVxHUB | 🥸 Lead SQA and 🐞 Security Analysts 🐛 Bug Bounty 👻 DevSecOps
