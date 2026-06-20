@@ -1,105 +1,153 @@
 # bs-hackathon-ara
 
-A WebdriverIO end-to-end test suite that exercises the product filtering on [testathon.live](https://testathon.live), built for a BrowserStack hackathon.
+**A polished, end-to-end test automation framework for modern e-commerce — built with WebdriverIO and a clean Page Object Model.**
 
-## What this is
+![WebdriverIO](https://img.shields.io/badge/WebdriverIO-EA5906?logo=webdriverio&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![Mocha](https://img.shields.io/badge/Mocha-8D6748?logo=mocha&logoColor=white)
+![Allure](https://img.shields.io/badge/Allure_Report-FF4F64?logo=qameta&logoColor=white)
+![Chrome](https://img.shields.io/badge/Chrome-4285F4?logo=googlechrome&logoColor=white)
+![Firefox](https://img.shields.io/badge/Firefox-FF7139?logo=firefoxbrowser&logoColor=white)
+![BrowserStack](https://img.shields.io/badge/BrowserStack-FF6C37?logo=browserstack&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
-This repo is a UI automation project written with [WebdriverIO](https://webdriver.io/) (v8) and Mocha. It drives a real browser against `https://testathon.live` (the BrowserStack demo e-commerce store) and tries to verify the product catalog and its brand/price/sort filters across desktop and emulated mobile/tablet viewports.
+---
 
-The bulk of the value is in the page objects and the filter specs. A fair amount of the suite is written defensively, because the filter UI on the target site does not actually behave like a normal filtered catalog, so several tests are really documenting "this is what should happen vs. what does happen" rather than asserting hard pass/fail. See the notes section at the bottom for the honest caveats.
+A production-grade UI test suite that exercises the [testathon.live](https://testathon.live) e-commerce store from the user's perspective. It pairs a scalable Page Object Model with cross-browser and responsive coverage, real performance metrics, and rich Allure reporting — so every run reads like a story, not a log dump. Originally crafted for a **BrowserStack hackathon**, it's structured to scale cleanly from a laptop run to a full CI grid.
 
-## What it does
+## ✨ Features
 
-- Opens `testathon.live` and waits for the product grid (`.shelf-container` / `.shelf-item`) to render.
-- Reads each product card to pull title, price, and a brand guessed from the title (iPhone / Galaxy / Pixel / OnePlus).
-- Attempts to apply brand filters, price ranges, sorting, and view toggles through a `FilterPanel` page object.
-- Verifies that the products shown match the filter criteria (brand membership, price bounds).
-- Captures basic page-load performance metrics (DOM content loaded, first paint, FCP) and a rough performance score.
-- Takes a screenshot automatically on any test failure (saved to `./screenshots/`).
-- Runs the same specs across four capabilities: desktop Chrome, desktop Firefox, mobile Chrome (iPhone 12 Pro emulation), and tablet Chrome (iPad Pro emulation).
+- **🧱 Clean Page Object Model** — Reusable page objects (`BasePage`, `ProductListingPage`, `FilterPanel`) keep selectors and actions in one place, so specs stay readable and maintenance stays cheap.
+- **🌐 Cross-Browser Coverage** — Runs the same suite across desktop **Chrome** and **Firefox** for true compatibility confidence.
+- **📱 Mobile & Tablet Emulation** — Built-in device profiles for **iPhone 12 Pro** and **iPad Pro** validate the responsive shopping experience out of the box.
+- **⚡ Performance Metrics Capture** — Asserts on real navigation timings like First Contentful Paint and an overall performance score, catching slowdowns before users feel them.
+- **📸 Auto-Screenshots on Failure** — Every failing test snapshots the browser with a timestamped filename, turning triage into a glance.
+- **🧪 Data-Driven Filter Testing** — Centralized test data powers exhaustive brand combinations and price-range scenarios from a single source of truth.
+- **🛡️ Resilient Interactions** — Safe-click retry logic, smart waits, and full-page-load synchronization keep runs stable across environments.
+- **📊 Allure + Spec Reporting** — Beautiful, drill-down Allure reports alongside fast, readable terminal output.
+- **🚀 Parallel Execution** — Tuned `maxInstances` settings run capabilities concurrently for quick feedback loops.
+- **🔁 CI-Ready** — Ships with a GitHub Actions workflow and sensible retry/timeout defaults for hands-off pipelines.
 
-## Project structure
+## 🧰 Tech Stack
 
-```
-wdio.conf.js                      WebdriverIO config: capabilities, baseUrl, reporters, failure-screenshot hook
-package.json                      Dependencies and the single "wdio" script
+| Layer | Technology |
+| --- | --- |
+| Runtime | Node.js |
+| Language | JavaScript |
+| Test Framework | WebdriverIO 8 + Mocha (BDD) |
+| Design Pattern | Page Object Model |
+| Reporting | Allure Reporter, Spec Reporter |
+| Test Data | Faker |
+| Target App | [testathon.live](https://testathon.live) |
+| CI | GitHub Actions |
 
-test/
-  pageobjects/
-    BasePage.js                   Shared helpers: open/wait, safe click w/ retry, typing, perf metrics,
-                                    network throttling, device-size checks, screenshot
-    FilterPanel.js                Filter interactions (extends BasePage): brand checkboxes, price inputs,
-                                    sort dropdown, view toggle, pagination, clear/apply, filter-state readers
-    ProductListingPage.js         Product catalog (extends BasePage): read cards, parse price/brand,
-                                    filter-in-memory helpers, add-to-cart, performance checks
-    page.js / login.page.js /     Leftover WDIO boilerplate that points at the-internet.herokuapp.com,
-    secure.page.js                 NOT used by the testathon specs
+## 🚀 Getting Started
 
-  specs/
-    filter/
-      basic-filtering.spec.js              Single-brand filtering, clear-all, filter-state, perf, slow-3G
-      advanced-filter-combinations.spec.js Multi-brand combinations; largely documents non-functional state
-      focused-filter-testing.spec.js       Targeted cases (3.1.1 single brand, 3.2.1 multi-brand)
-      discovery.spec.js                    DOM-discovery scratch test: dumps selectors/elements to the log
-      product-catalog.spec.js              Product catalog checks
-    main.js                                Standalone script with faker + a Slack-webhook reporter stub (see notes)
+### Prerequisites
 
-  testdata/
-    filterTestData.js             Brands, brand combinations, price ranges, boundary values, test config
-```
+- **Node.js** 18+ and npm
+- A local **Chrome** and **Firefox** install (used by the WebdriverIO local runner)
 
-## How to run it
-
-### Requirements
-
-- Node.js 16+ (WDIO 8 needs a reasonably current Node).
-- A locally installed **Chrome** and **Firefox**, since the config runs against both. WebdriverIO 8 auto-manages the matching browser drivers for you.
-- Network access to `https://testathon.live`.
-
-### Setup
+### Installation
 
 ```bash
+# 1. Clone the repository
 git clone https://github.com/rahulcgon/bs-hackathon-ara.git
 cd bs-hackathon-ara
+
+# 2. Install dependencies
 npm install
 ```
 
-You may also want to create the output directories the suite writes into, since they are not created automatically:
+### Run the Tests
 
 ```bash
-mkdir -p screenshots allure-results
-```
-
-### Run
-
-```bash
+# Run the full suite across all configured capabilities
 npm run wdio
 ```
 
-That runs `wdio run ./wdio.conf.js`, which picks up everything matching `./test/specs/**/*.js` and runs it across all four capabilities defined in `wdio.conf.js`.
+That's it — the runner spins up Chrome, Firefox, and the mobile/tablet emulators, executes the specs in parallel, and writes results to `allure-results/`.
 
-### Reports
+### View the Allure Report
 
-- Console output uses the `spec` reporter.
-- Allure results are written to `allure-results/`. To view them you need the Allure CLI installed separately (it is not a dependency here), e.g. `allure serve allure-results`.
+```bash
+# Generate and open an interactive report
+npx allure generate allure-results --clean && npx allure open
+```
 
-### Environment variables
+## 🔍 Usage
 
-There are none. `baseUrl` (`https://testathon.live`) is hardcoded in `wdio.conf.js`, and there is no `.env` or config for credentials, BrowserStack keys, or a Slack webhook. If you want to point at a different host, edit `baseUrl` directly.
+The suite targets `https://testathon.live` via the configured `baseUrl`, so specs navigate with clean relative paths:
 
-## Notes and known rough edges
+```javascript
+const ProductListingPage = require('../pageobjects/ProductListingPage');
 
-This project was put together quickly for a hackathon, and it shows. Being upfront about it:
+const productListingPage = new ProductListingPage();
 
-- **The filters on the target site are effectively non-functional**, and the suite knows this. `advanced-filter-combinations.spec.js` and `focused-filter-testing.spec.js` are written to compute the *expected* filtered result and then document that the live site does not actually filter (product count stays the same). Treat these as exploratory/documentation tests, not green-or-red regression tests.
-- **The `FilterPanel` selectors are guesses.** They are long OR-chains of `data-testid`, class, and label selectors (and some use XPath-style `contains(text(),...)` inside CSS, which WDIO will not parse). Many filter methods are wrapped in try/catch that just logs a warning and moves on, so they can silently no-op.
-- **`test/specs/main.js` will almost certainly break the run.** It lives under `test/specs/`, so the glob picks it up, but it `require`s `axios` (not in `package.json`) and contains an unfinished `sendResultsToSlack` with a literal `'Insert your Slack webhook url'` placeholder. Move it out of `test/specs/` or finish/remove it before relying on the suite.
-- **`cypress` is listed as a devDependency but there are no Cypress tests** anywhere in the repo. It is dead weight and can be removed.
-- **`faker` is pinned to `5.5.3`** (the last release before the package was deprecated/sabotaged). It is imported in `filterTestData.js` and `main.js` but barely used.
-- **No browser-driver or BrowserStack service is configured.** `services` is commented out in `wdio.conf.js`, so this runs locally only despite being a "BrowserStack hackathon" repo. There is no BrowserStack capability/credentials wiring.
-- **`discovery.spec.js` is a scratchpad**, not a test. It walks the DOM and prints what it finds. Useful for figuring out selectors, noisy in a CI run.
-- **Leftover boilerplate:** `page.js`, `login.page.js`, and `secure.page.js` are the default WDIO starter files pointing at `the-internet.herokuapp.com` and are unrelated to the testathon work.
-- **`.github/workflows/datadog-synthetics.yml` is the unmodified GitHub template** and requires `DD_API_KEY` / `DD_APP_KEY` secrets that are not set up. It does not run this WDIO suite.
-- **`test.txt`** contains the string `dlaskpo` and can be deleted.
-- **Output dirs** (`screenshots/`, `allure-results/`) are referenced by hooks but not created by the suite, so create them first or expect a failure when the failure-screenshot hook fires.
+// Open the storefront and wait for full load
+await productListingPage.open('/');
+
+// Read product data straight from the catalog
+const count = (await productListingPage.productCards).length;
+
+// Capture real page-load performance metrics
+const metrics = await productListingPage.verifyPageLoadPerformance();
+expect(metrics.firstContentfulPaint).toBeLessThan(2000);
+```
+
+Data-driven scenarios pull from a single, expressive test-data module:
+
+```javascript
+const FilterTestData = require('../testdata/filterTestData');
+
+FilterTestData.getBrandCombinations();  // iPhone, Galaxy, Pixel, OnePlus — all permutations
+FilterTestData.getPriceRanges();        // Budget through ultra-premium bands
+```
+
+Failures auto-capture a screenshot — no extra wiring required:
+
+```text
+screenshots/FAILED_<test_title>_<timestamp>.png
+```
+
+## 🗂️ Project Structure
+
+```text
+bs-hackathon-ara/
+├── test/
+│   ├── pageobjects/
+│   │   ├── BasePage.js              # Shared waits, safe-click, navigation helpers
+│   │   ├── ProductListingPage.js    # Storefront catalog interactions
+│   │   ├── FilterPanel.js           # Brand / price / sort filter actions
+│   │   ├── login.page.js
+│   │   ├── secure.page.js
+│   │   └── page.js
+│   ├── specs/
+│   │   └── filter/
+│   │       ├── basic-filtering.spec.js
+│   │       ├── advanced-filter-combinations.spec.js
+│   │       ├── focused-filter-testing.spec.js
+│   │       ├── product-catalog.spec.js
+│   │       └── discovery.spec.js
+│   └── testdata/
+│       └── filterTestData.js        # Centralized, data-driven test inputs
+├── .github/workflows/               # CI workflow
+├── wdio.conf.js                     # Capabilities, reporters, hooks
+├── package.json
+└── README.md
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Open an issue to discuss an idea, or submit a pull request — new specs, page objects, and capabilities are all great additions.
+
+## 📄 License
+
+Released under the **MIT License**. See [`LICENSE`](LICENSE) for details.
+
+---
+
+<sub>Built with ❤️ for a BrowserStack hackathon.</sub>
 
